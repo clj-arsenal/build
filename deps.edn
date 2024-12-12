@@ -1,0 +1,13 @@
+{:paths ["src"]
+
+ :aliases
+ {:build
+  {:ns-default clj-arsenal.build}}
+
+ :clj-arsenal.build/meta
+ {:version [0 0 0]
+  :name me.raystubbs.clj-arsenal/build
+  :license "The MIT License"
+  :license-url "https://opensource.org/license/mit/"
+  :pub-url "https://github.com/clj-arsenal/build"
+  :git-url "https://github.com/clj-arsenal/build.git"}}
