@@ -1,29 +1,16 @@
 (ns clj-arsenal.build
   (:require
    [clojure.tools.build.api :as b]
-   [clojure.edn :as edn]
    [clojure.string :as str]
+   [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [deps-deploy.deps-deploy :as d])
+   [deps-deploy.deps-deploy :as d]
+   [rewrite-clj.zip :as z])
   (:import java.io.File))
 
-(def ^:private basis (delay (b/create-basis {:project "deps.edn"})))
-
-(defn- read-meta
-  []
-  (-> (slurp "deps.edn")
-    edn/read-string
-    ::meta))
-
-(defn- update-meta
+(defn- update-deps!
   [f]
-  ;; TODO: should probably lock it
-  (as-> (slurp "deps.edn") $
-    (edn/read-string $)
-    (update $ ::meta f)
-    (pr-str $)
-    (spit "deps.edn" $)
-    $))
+  (spit "deps.edn" (z/root-string (f (z/of-file "deps.edn")))))
 
 (defn clean
   [_]
@@ -31,17 +18,23 @@
 
 (defn- bump
   [n]
-  (let [build-meta (update-meta
-                    (fn [build-meta]
-                      (update build-meta :version
-                        (fn [version]
-                          (into (subvec version 0 n) (cons (inc (nth version n)) (subvec version (inc n))))))))
-          version-str (str/join "." (:version build-meta))]
+  (update-deps!
+    (fn [zloc]
+      (-> zloc
+        (z/get ::meta)
+        (z/get :version)
+        (z/edit
+          (fn [version-str]
+            (let [version-vec (mapv parse-long (str/split version-str #"[.]"))]
+              (str/join "."
+                (into (subvec version-vec 0 n)
+                  (cons (inc (nth version-vec n))
+                    (subvec version-vec (inc n)))))))))))
+  (let [{:keys [version]} (::meta (edn/read-string (slurp "deps.edn")))]
     (b/git-process {:git-args "stash"})
-    (spit "meta.edn" (pr-str meta))
-    (b/git-process {:git-args (str "commit -a -m v" version-str)})
-    (b/git-process {:git-args (str "tag -a v" version-str " -m v" version-str)})
-    (b/git-process {:git-args (str "push origin v" version-str)})))
+    (b/git-process {:git-args (str "commit -a -m v" version)})
+    (b/git-process {:git-args (str "tag -a v" version " -m v" version)})
+    (b/git-process {:git-args (str "push --follow-tags")})))
 
 (defn bump-patch [_]
   (bump 2))
@@ -54,14 +47,14 @@
 
 (defn pack [_]
   (run! io/delete-file (reverse (file-seq (File. "target"))))
-  (let [{:keys [version name pub-url git-url license license-url]} (edn/read-string (slurp "meta.edn"))
-        version-str (str/join "." version)
+  (let [basis (b/create-basis {:project "deps.edn"})
+        {:keys [version license license-url pub-url git-url]} (::meta basis)
         class-dir "target/classes"]
     (b/write-pom
       {:class-dir class-dir
        :lib name
-       :version version-str
-       :basis @basis
+       :version version
+       :basis basis
        :src-dirs ["src"]
        :pom-data [[:licenses
                    [:license
@@ -76,7 +69,7 @@
        :target-dir class-dir})
     (b/jar
       {:class-dir class-dir
-       :jar-file (format "target/%s-%s.jar" (clojure.core/name name) version-str)})))
+       :jar-file (format "target/%s-%s.jar" (clojure.core/name name) version)})))
 
 (defn deploy [_]
   (let [{:keys [version name]} (edn/read-string (slurp "meta.edn"))
