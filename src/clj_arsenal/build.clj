@@ -18,6 +18,7 @@
 
 (defn- bump
   [n]
+  (b/git-process {:git-args "stash"})
   (update-deps!
     (fn [zloc]
       (-> zloc
@@ -31,7 +32,6 @@
                   (cons (inc (nth version-vec n))
                     (subvec version-vec (inc n)))))))))))
   (let [{:keys [version]} (::meta (edn/read-string (slurp "deps.edn")))]
-    (b/git-process {:git-args "stash"})
     (b/git-process {:git-args (str "commit -a -m v" version)})
     (b/git-process {:git-args (str "tag -a v" version " -m v" version)})
     (b/git-process {:git-args (str "push --follow-tags")})))
