@@ -72,10 +72,9 @@
 
 (defn deploy [_]
   (let [basis (b/create-basis {:project "deps.edn"})
-        {:keys [version name]} (::meta basis) 
-        version-str (str/join "." version)]
+        {:keys [version name]} (::meta basis)]
     (d/deploy
       {:installer :remote
-       :artifact (format "target/%s-%s.jar" (clojure.core/name name) version-str)
+       :artifact (format "target/%s-%s.jar" (clojure.core/name name) version)
        :pom-file (str "target/classes/META-INF/maven/" (namespace name) "/" (clojure.core/name name) "/pom.xml")
        :sign-releases? true})))
