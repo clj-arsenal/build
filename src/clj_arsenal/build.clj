@@ -46,7 +46,7 @@
   (bump 0))
 
 (defn pack [_]
-  (run! io/delete-file (reverse (file-seq (File. "target"))))
+  (run! #(.deleteIfExists ^File %) (reverse (file-seq (File. "target"))))
   (let [basis (b/create-basis {:project "deps.edn"})
         {:keys [version license license-url pub-url git-url]} (::meta basis)
         class-dir "target/classes"]
