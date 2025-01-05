@@ -3,10 +3,9 @@
    [clojure.tools.build.api :as b]
    [clojure.string :as str]
    [clojure.edn :as edn]
-   [clojure.java.io :as io]
    [deps-deploy.deps-deploy :as d]
    [rewrite-clj.zip :as z])
-  (:import java.io.File))
+  (:import java.io.File java.nio.file.Files))
 
 (defn- update-deps!
   [f]
@@ -46,9 +45,9 @@
   (bump 0))
 
 (defn pack [_]
-  (run! #(.deleteIfExists ^File %) (reverse (file-seq (File. "target"))))
+  (run! #(Files/deleteIfExists (.toPath ^File %)) (reverse (file-seq (File. "target"))))
   (let [basis (b/create-basis {:project "deps.edn"})
-        {:keys [version license license-url pub-url git-url]} (::meta basis)
+        {:keys [name version license license-url pub-url git-url]} (::meta basis)
         class-dir "target/classes"]
     (b/write-pom
       {:class-dir class-dir
