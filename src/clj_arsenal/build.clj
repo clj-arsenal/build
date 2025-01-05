@@ -71,7 +71,8 @@
        :jar-file (format "target/%s-%s.jar" (clojure.core/name name) version)})))
 
 (defn deploy [_]
-  (let [{:keys [version name]} (edn/read-string (slurp "meta.edn"))
+  (let [basis (b/create-basis {:project "deps.edn"})
+        {:keys [version name]} (::meta basis) 
         version-str (str/join "." version)]
     (d/deploy
       {:installer :remote
