@@ -54,7 +54,7 @@
        :lib name
        :version version
        :basis basis
-       :src-dirs ["src"]
+       :src-dirs (:paths basis)
        :pom-data [[:licenses
                    [:license
                     [:name license]
@@ -64,7 +64,7 @@
                    [:url pub-url]
                    [:connection (str"scm:git:" git-url)]]]})
     (b/copy-dir
-      {:src-dirs ["src"]
+      {:src-dirs (:paths basis)
        :target-dir class-dir})
     (b/jar
       {:class-dir class-dir
